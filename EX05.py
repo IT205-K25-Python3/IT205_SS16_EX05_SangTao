@@ -104,122 +104,63 @@ E. CHUC NANG: check_medication(patient_list, patient_id) > None
 
 """
 
-def create_medication_list(meds_input):
-    """
-    Tao list thuoc tu chuoi nhap vao.
-    - Tach theo dau phay.
-    - Xoa khoang trang thua.
-    """
-    if not meds_input:
-        return []
-    # Tach chuoi
-    raw_meds = meds_input.split(',')
-    # Xoa khoang trang thua cho tung thuoc
-    clean_meds = [m.strip() for m in raw_meds if m.strip()]
-    return clean_meds
+# Hệ thống lưu trữ tập trung
+emergency_registry = {}
 
-def copy_medication_list(original_list):
-    """
-    Tao ban sao moi cua list thuoc.
-    - Su dung slicing [:] de tao shallow copy.
-    """
-    return original_list[:]
-
-def add_patient(patient_list, p_id, p_name, meds_str):
-    """
-    Them benh nhan moi voi don thuoc da sao chep.
-    """
-    print(f"\n--- Them benh nhan: {p_id} ---")
-    
-    # Tao list thuoc tu chuoi
-    raw_meds = create_medication_list(meds_str)
-    
-    # QUAN TRONG: Tao ban sao de tranh loi tham chieu
-    # Neu khong copy: patient_list se tham chieu den cung list voi bien raw_meds
-    # va cac benh nhan khac neu chung cung gan tu cung bien nay.
-    safe_meds = copy_medication_list(raw_meds)
-    
-    new_patient = [p_id, p_name, safe_meds]
-    patient_list.append(new_patient)
-    print(f"Da them benh nhan {p_name}. Don thuoc: {safe_meds}")
-    print(f"Dia chi bo nho don thuoc: {id(safe_meds)}")
-
-def update_medication(patient_list, p_id, new_meds_str):
-    """
-    Cap nhat don thuoc cho benh nhan.
-    - Tao list moi va sao chep truoc khi gan.
-    """
-    print(f"\n--- Cap nhat don thuoc cho benh nhan: {p_id} ---")
-    
-    index = -1
-    for i, p in enumerate(patient_list):
-        if p == p_id:
-            index = i
-            break
-    
-    if index == -1:
-        print(f"Khong tim thay benh nhan {p_id}!")
+def admit_patient(p_id, name):
+    """Thêm bệnh nhân mới vào hệ thống."""
+    if p_id in emergency_registry:
+        print(f"Lỗi: ID {p_id} đã tồn tại.")
         return
-
-    # Tao list thuoc moi
-    new_meds_list = create_medication_list(new_meds_str)
     
-    # QUAN TRONG: Tao ban sao moi cho benh nhan nay
-    safe_new_meds = copy_medication_list(new_meds_list)
-    
-    # Cap nhat vao benh nhan
-    patient_list[index] = safe_new_meds
-    
-    print(f"Da cap nhat don thuoc cho {patient_list[index]}: {safe_new_meds}")
-    print(f"Dia chi bo nho moi: {id(safe_new_meds)}")
+    # Khởi tạo dict mới cho mỗi bệnh nhân
+    emergency_registry[p_id] = {
+        'name': name,
+        'heart_rate': 0,
+        'spo2': 0,
+        'meds': [] # Danh sách thuốc rỗng
+    }
+    print(f"Đã nhập viện: {name} (ID: {p_id})")
 
-def display_patients(patient_list):
-    """
-    Hien thi danh sach benh nhan va dia chi bo nho.
-    """
-    print("\n----- DANH SACH BENH NHAN (CO ID BO NHO) -----")
-    if not patient_list:
-        print("Khong co du lieu.")
-        return
-
-    for i, p in enumerate(patient_list, 1):
-        meds = p
-        print(f"{i}. ID: {p} | Ten: {p} | Don thuoc: {meds} | ID List: {id(meds)}")
-
-def main():
-    """
-    Ham chinh minh hoa loi va cach sua.
-    """
-    patients = []
-
-    # 1. Them benh nhan 1 voi don thuoc "Aspirin, Paracetamol"
-    add_patient(patients, "P001", "Nguyen Van A", "Aspirin, Paracetamol")
-
-    # 2. Them benh nhan 2 voi cung don thuoc "Aspirin, Paracetamol"
-    # Neu khong copy, P001 va P002 se chung mot list.
-    add_patient(patients, "P002", "Tran Thi B", "Aspirin, Paracetamol")
-
-    print("\n--- Hien tai, hai benh nhan co cung don thuoc (nhung list khac nhau) ---")
-    display_patients(patients)
-
-    # 3. Cap nhat don thuoc cho P001: them "Amoxicillin"
-    # Neu khong copy, P002 cung se co Amoxicillin (loi tham chieu).
-    # Code nay da copy nen P002 khong bi thay doi.
-    update_medication(patients, "P001", "Aspirin, Paracetamol, Amoxicillin")
-
-    print("\n--- Sau khi cap nhat P001 ---")
-    print("Neu dung: P001 co Amoxicillin, P002 khong co.")
-    print("Neu loi: P002 cung co Amoxicillin.")
-    display_patients(patients)
-
-    # Kiem tra ket qua
-    p1_meds = patients
-    p2_meds = patients
-    
-    if "Amoxicillin" in p1_meds and "Amoxicillin" not in p2_meds:
-        print("\n[THANH CONG] Loi tham chieu da duoc giai quyet!")
+def update_vitals(p_id, heart_rate, spo2):
+    """Cập nhật sinh hiệu."""
+    if p_id in emergency_registry:
+        emergency_registry[p_id]['heart_rate'] = heart_rate
+        emergency_registry[p_id]['spo2'] = spo2
+        print(f"Đã cập nhật sinh hiệu cho {emergency_registry[p_id]['name']}")
+        
+        # Kiểm tra ngưỡng cảnh báo
+        if spo2 < 90:
+            print(f"!!! CẢNH BÁO: Bệnh nhân {emergency_registry[p_id]['name']} SpO2 thấp ({spo2}%) !!!")
     else:
-        print("\n[LOI] Loi tham chieu van con ton tai!")
+        print("Không tìm thấy bệnh nhân.")
+
+def update_medication(p_id, new_meds_list):
+    """Cập nhật danh sách thuốc bằng cách sao chép thủ công."""
+    if p_id in emergency_registry:
+        # Sử dụng [:] để tạo bản sao mới của list, tránh tham chiếu bộ nhớ
+        emergency_registry[p_id]['meds'] = new_meds_list[:]
+        print(f"Đã cập nhật đơn thuốc cho {emergency_registry[p_id]['name']}")
+
+def display_dashboard():
+    """Hiển thị bảng điều khiển."""
+    print("\n--- BẢNG ĐIỀU KHIỂN CẤP CỨU ---")
+    for p_id, info in emergency_registry.items():
+        print(f"ID: {p_id} | Tên: {info['name']} | SpO2: {info['spo2']}% | Thuốc: {info['meds']}")
+
+# --- CHẠY CHƯƠNG TRÌNH ---
+def main():
+    admit_patient("P001", "Nguyen Van A")
+    admit_patient("P002", "Tran Thi B")
+    
+    # Cập nhật cho P001
+    update_medication("P001", ["Aspirin", "Paracetamol"])
+    update_vitals("P001", 80, 85) # Kích hoạt cảnh báo
+    
+    # Cập nhật cho P002
+    update_medication("P002", ["Amoxicillin"])
+    
+    display_dashboard()
 
 if __name__ == "__main__":
     main()
